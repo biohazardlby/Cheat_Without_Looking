@@ -51,10 +51,10 @@ namespace PupilLabs
                 UpdateCalibration();
             }
 
-            if (Input.GetKeyUp(KeyCode.C))
-            {
-                ToggleCalibration();
-            }
+            //if (Input.GetKeyUp(KeyCode.C))
+            //{
+            //    ToggleCalibration();
+            //}
         }
 
         public void ToggleCalibration()
