@@ -10,25 +10,10 @@ public class Controller_RayTracer : MonoBehaviour
     public bool useFakeController = false;
     public GameObject fake_ctrl;
 
-
     // Use this for initialization
     void Start()
     {
-        line_render = GetComponent<LineRenderer>();
-        if (line_render == null)
-        {
-            Debug.LogWarning("No line renderer found in controller raytracer");
-        }
-        else
-        {
-            line_render.positionCount = 2;
-            line_render.material = new Material(Shader.Find("Sprites/Default"));
-        }
-        if (useFakeController)
-        {
-            fake_ctrl = GameObject.Instantiate(fake_ctrl);
-            fake_ctrl.transform.Translate(0, 1, 0);
-        }
+
     }
 
     // Update is called once per frame
