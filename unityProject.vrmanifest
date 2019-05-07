@@ -1,0 +1,16 @@
+{
+  "source": "Unity",
+  "applications": [
+    {
+      "app_key": "application.generated.unity.cheat_without_looking.exe",
+      "launch_type": "url",
+      "url": "steam://launch/",
+      "action_manifest_path": "D:\\IVE_Spring19\\Boyuan Li\\Cheat_Without_Looking\\actions.json",
+      "strings": {
+        "en_us": {
+          "name": "Cheat_Without_Looking [Testing]"
+        }
+      }
+    }
+  ]
+}

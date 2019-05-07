@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Valve.VR;
 using static PupilLabs.GazeData;
 
 enum player_mode
@@ -160,30 +161,38 @@ public class Drawer : MonoBehaviour
         {
             penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
             eyeRay = new Ray(cam.transform.position, Vector3.Normalize(cam.transform.rotation * plGiwVector_xyz));
+            Debug.Log(eyeRay.direction);
+            Debug.DrawLine(cam.transform.position, cam.transform.position + Vector3.Normalize(cam.transform.rotation * plGiwVector_xyz) * 10);
         }
         switch (current_mode)
         {
             case player_mode.draw:
                 //draw if press fire
-                if (Input.GetButton("Fire1"))
+                if (isFiringDown())
                 {
                     draw(penRay);
                 }
-                //release to reset isFirstDraw
-                if (Input.GetButtonUp("Fire1"))
+                else
                 {
                     isFirstDraw = true;
                 }
                 eye_check(eyeRay);
                 break;
             case player_mode.ui:
-                if (Input.GetButtonDown("Fire1"))
+                if (isFiring())
                 {
                     raycastUI(penRay);
                 }
                 break;
         }
-
+    }
+    bool isFiringDown()
+    {
+        return Input.GetButton("Fire1") || SteamVR_Actions._default.GrabPinch.GetState(SteamVR_Input_Sources.Any);
+    }
+    bool isFiring()
+    {
+        return Input.GetButtonDown("Fire1") || SteamVR_Actions._default.GrabPinch.GetLastStateDown(SteamVR_Input_Sources.Any);
     }
 
     void eye_check(Ray eyeRay)
@@ -208,8 +217,8 @@ public class Drawer : MonoBehaviour
     //raycast to ui to select in menu
     void raycastUI(Ray ray)
     {
-        RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction, trace_distance, LayerMask.GetMask("UI"));
-        if (hit)
+        RaycastHit hit; 
+        if (Physics.Raycast(ray, out hit, trace_distance, LayerMask.GetMask("UI")))
         {
             Click_UI ui = hit.collider.gameObject.GetComponent<Click_UI>();
             if (ui != null)
