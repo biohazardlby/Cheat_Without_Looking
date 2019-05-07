@@ -15,7 +15,6 @@ enum player_mode
 
 public class Drawer : MonoBehaviour
 {
-    public bool testing;
 
     public Camera vrCam;
     public Camera fakeCam;
@@ -40,6 +39,8 @@ public class Drawer : MonoBehaviour
     public Text answer_text_ui;
 
     [Header("Settings")]
+    public bool testing;
+    public bool eyetrack;
     public LayerMask drawingboard_layermask;
     public float trace_distance = 100;
     public float draw_max_gap = 10;
@@ -188,8 +189,10 @@ public class Drawer : MonoBehaviour
             {
                 penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
                 eyeRay = new Ray(vrCam.transform.position, Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz));
-                eyeRay = new Ray(vrCam.transform.position, vrCam.transform.forward);
-                
+                if (!eyetrack)
+                {
+                    eyeRay = new Ray(vrCam.transform.position, vrCam.transform.forward);
+                }
                 Debug.Log(eyeRay.direction);
                 //Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
                 Debug.DrawLine(eyeRay.origin, eyeRay.origin + eyeRay.direction *10, Color.red);
@@ -259,7 +262,7 @@ public class Drawer : MonoBehaviour
                 cheat_time = 0;
             }
         }
-        else
+        else if (!eyetrack || plConfidence >=confidence_filter)
         {
             teacher_eye1.material.SetColor("_EmissionColor", Color.red);
             teacher_eye2.material.SetColor("_EmissionColor", Color.red);
