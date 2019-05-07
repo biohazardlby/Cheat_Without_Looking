@@ -4,18 +4,20 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using Valve.VR;
+using UnityEngine.SceneManagement;
 using static PupilLabs.GazeData;
 
 enum player_mode
 {
-    draw, ui
+    draw, ui, over
 }
 
 public class Drawer : MonoBehaviour
 {
     public bool testing;
 
-    public Camera cam;
+    public Camera vrCam;
+    public Camera fakeCam;
     [Header("PupilLabs")]
     public PupilLabs.SubscriptionsController PupilConnection;
     public PupilLabs.CalibrationController calibration_ctrl;
@@ -28,16 +30,24 @@ public class Drawer : MonoBehaviour
     public GameObject Menu;
     public Transform controller_trans;
     public List<GameObject> answer_paper;
+    public Animator teacher_animator;
+    public Drawingboard drawingboard;
+    public Renderer teacher_eye1;
+    public Renderer teacher_eye2;
+    public Answerboard answerboard;
+    public GameObject ingameCanvas;
 
     [Header("Settings")]
     public LayerMask drawingboard_layermask;
     public float trace_distance = 100;
     public float draw_max_gap = 10;
+    public float cheat_duration = 0.2f;
 
     GameObject drawn_sprites_parent;
     List<Texture> image_list = new List<Texture>();
     player_mode current_mode = player_mode.ui;
-
+    bool takeInput = true;
+    float cheat_time = 0;
     //Initialize some containers
     PupilLabs.GazeListener gazeListener = null;
 
@@ -150,40 +160,71 @@ public class Drawer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Ray penRay;
-        Ray eyeRay;
-        if (testing)
+        if (takeInput)
         {
-            penRay = cam.ScreenPointToRay(Input.mousePosition);
-            eyeRay = new Ray(cam.transform.position, cam.transform.forward);
-        }
-        else
-        {
-            penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
-            eyeRay = new Ray(cam.transform.position, Vector3.Normalize(cam.transform.rotation * plGiwVector_xyz));
-            Debug.Log(eyeRay.direction);
-            Debug.DrawLine(cam.transform.position, cam.transform.position + Vector3.Normalize(cam.transform.rotation * plGiwVector_xyz) * 10);
-        }
-        switch (current_mode)
-        {
-            case player_mode.draw:
-                //draw if press fire
-                if (isFiringDown())
+            Ray penRay;
+            Ray eyeRay;
+            if (testing)
+            {
+                penRay = fakeCam.ScreenPointToRay(Input.mousePosition);
+                eyeRay = new Ray(fakeCam.transform.position, fakeCam.transform.forward);
+                if (Input.GetKeyDown("s"))
                 {
-                    draw(penRay);
+                    Menu.SetActive(false);
+                    StartCoroutine(wait_n_start(2));
                 }
-                else
+                else if (Input.GetKeyDown("c"))
                 {
-                    isFirstDraw = true;
+                    calibration_ctrl.ToggleCalibration();
                 }
-                eye_check(eyeRay);
-                break;
-            case player_mode.ui:
-                if (isFiring())
-                {
-                    raycastUI(penRay);
-                }
-                break;
+            }
+            else
+            {
+                penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
+                eyeRay = new Ray(vrCam.transform.position, Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz));
+                Debug.Log(eyeRay.direction);
+                Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
+            }
+            switch (current_mode)
+            {
+                case player_mode.draw:
+                    //draw if press fire
+                    if (isFiringDown())
+                    {
+                        draw(penRay);
+                        RaycastHit hit;
+                        //see if click finish drawing
+                        if (Physics.Raycast(penRay, out hit, trace_distance, LayerMask.GetMask("UI")))
+                        {
+                            if (hit.collider.gameObject.tag == "done_drawing")
+                            {
+                                Debug.Log("Over");
+                                StartCoroutine(gameOver());
+                                answerboard.isMoving = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        isFirstDraw = true;
+                    }
+                    eye_check(eyeRay);
+                    break;
+                case player_mode.ui:
+                    if (isFiring())
+                    {
+                        raycastUI(penRay);
+                    }
+                    break;
+                case player_mode.over:
+                    Debug.Log("gameover");
+                    if (isFiringDown())
+                    {
+                        Debug.Log("gameoverClicked");
+                        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                    }
+                    break;
+            }
         }
     }
     bool isFiringDown()
@@ -200,10 +241,14 @@ public class Drawer : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(eyeRay, out hit, trace_distance, drawingboard_layermask))
         {
-            Debug.Log("valid");
+            teacher_eye1.material.SetColor("_EmissionColor", Color.green);
+            teacher_eye2.material.SetColor("_EmissionColor", Color.green);
+            cheat_time = 0;
         }
-        else
+        else if (testing || plConfidence >= 50)
         {
+            teacher_eye1.material.SetColor("_EmissionColor", Color.red);
+            teacher_eye2.material.SetColor("_EmissionColor", Color.red);
             cheat_event();
         }
     }
@@ -211,7 +256,26 @@ public class Drawer : MonoBehaviour
     //event happen when cheating
     void cheat_event()
     {
-        Debug.Log("Cheating");
+        cheat_time += Time.deltaTime;
+        if (cheat_time >= cheat_duration)
+        {
+            Debug.Log("Cheating");
+            teacher_animator.SetTrigger("Madness");
+            StartCoroutine(launchDrawingboard());
+            StartCoroutine(gameOver());
+        }
+    }
+    IEnumerator launchDrawingboard()
+    {
+        yield return new WaitForSeconds(1.1f);
+        drawingboard.launching = true;
+    }
+    IEnumerator gameOver()
+    {
+        takeInput = false;
+        current_mode = player_mode.over;
+        yield return new WaitForSeconds(5);
+        takeInput = true;
     }
 
     //raycast to ui to select in menu
@@ -247,6 +311,7 @@ public class Drawer : MonoBehaviour
         yield return new WaitForSeconds(t);
         current_mode = player_mode.draw;
         set_rand_image();
+        ingameCanvas.SetActive(true);
     }
 
     void set_rand_image()
