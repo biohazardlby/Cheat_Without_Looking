@@ -188,8 +188,11 @@ public class Drawer : MonoBehaviour
             {
                 penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
                 eyeRay = new Ray(vrCam.transform.position, Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz));
+                eyeRay = new Ray(vrCam.transform.position, vrCam.transform.forward);
+                
                 Debug.Log(eyeRay.direction);
-                Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
+                //Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
+                Debug.DrawLine(eyeRay.origin, eyeRay.origin + eyeRay.direction *10, Color.red);
             }
             eye_check(eyeRay);
             switch (current_mode)
@@ -256,7 +259,7 @@ public class Drawer : MonoBehaviour
                 cheat_time = 0;
             }
         }
-        else if (testing || plConfidence >= confidence_filter)
+        else
         {
             teacher_eye1.material.SetColor("_EmissionColor", Color.red);
             teacher_eye2.material.SetColor("_EmissionColor", Color.red);
