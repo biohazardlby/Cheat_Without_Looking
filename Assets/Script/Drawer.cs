@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.UI;
 using Valve.VR;
 using UnityEngine.SceneManagement;
 using static PupilLabs.GazeData;
@@ -36,12 +37,14 @@ public class Drawer : MonoBehaviour
     public Renderer teacher_eye2;
     public Answerboard answerboard;
     public GameObject ingameCanvas;
+    public Text answer_text_ui;
 
     [Header("Settings")]
     public LayerMask drawingboard_layermask;
     public float trace_distance = 100;
     public float draw_max_gap = 10;
     public float cheat_duration = 0.2f;
+    public float confidence_filter = 50;
 
     GameObject drawn_sprites_parent;
     List<Texture> image_list = new List<Texture>();
@@ -62,8 +65,11 @@ public class Drawer : MonoBehaviour
 
     float plConfidence;
     float plTimeStamp;
+    //end of pupil lab
 
     string mode;
+    string answer;
+    FileInfo[] fileInfos;
     bool isFirstDraw = true;
     // Start is called before the first frame update
     void Start()
@@ -72,8 +78,9 @@ public class Drawer : MonoBehaviour
         gazeListener.OnReceive3dGaze += ReceiveGaze;
         //initialize parent for sprites
         drawn_sprites_parent = new GameObject("SpriteParent");
+        drawn_sprites_parent.transform.SetParent(drawingboard.transform);
         var dicInfo = new DirectoryInfo(Application.dataPath + "\\Image\\random_image");
-        var fileInfos = dicInfo.GetFiles("*.jpg");
+        fileInfos = dicInfo.GetFiles("*.jpg");
         foreach(FileInfo f in fileInfos)
         {
             Debug.Log(f.ToString());
@@ -82,7 +89,6 @@ public class Drawer : MonoBehaviour
             {
                 fileData = File.ReadAllBytes(f.ToString());
                 Texture2D tex = new Texture2D(2, 2);
-        
                 tex.LoadImage(fileData);
                 image_list.Add(tex);
             }
@@ -185,6 +191,7 @@ public class Drawer : MonoBehaviour
                 Debug.Log(eyeRay.direction);
                 Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
             }
+            eye_check(eyeRay);
             switch (current_mode)
             {
                 case player_mode.draw:
@@ -198,9 +205,13 @@ public class Drawer : MonoBehaviour
                         {
                             if (hit.collider.gameObject.tag == "done_drawing")
                             {
+                                teacher_eye1.material.SetColor("_EmissionColor", Color.white);
+                                teacher_eye2.material.SetColor("_EmissionColor", Color.white);
                                 Debug.Log("Over");
                                 StartCoroutine(gameOver());
                                 answerboard.isMoving = true;
+                                Debug.Log("answer = " + answer);
+                                answer_text_ui.text = answer;
                             }
                         }
                     }
@@ -208,7 +219,6 @@ public class Drawer : MonoBehaviour
                     {
                         isFirstDraw = true;
                     }
-                    eye_check(eyeRay);
                     break;
                 case player_mode.ui:
                     if (isFiring())
@@ -217,10 +227,8 @@ public class Drawer : MonoBehaviour
                     }
                     break;
                 case player_mode.over:
-                    Debug.Log("gameover");
                     if (isFiringDown())
                     {
-                        Debug.Log("gameoverClicked");
                         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                     }
                     break;
@@ -243,13 +251,19 @@ public class Drawer : MonoBehaviour
         {
             teacher_eye1.material.SetColor("_EmissionColor", Color.green);
             teacher_eye2.material.SetColor("_EmissionColor", Color.green);
-            cheat_time = 0;
+            if (current_mode == player_mode.draw)
+            {
+                cheat_time = 0;
+            }
         }
-        else if (testing || plConfidence >= 50)
+        else if (testing || plConfidence >= confidence_filter)
         {
             teacher_eye1.material.SetColor("_EmissionColor", Color.red);
             teacher_eye2.material.SetColor("_EmissionColor", Color.red);
-            cheat_event();
+            if (current_mode == player_mode.draw)
+            {
+                cheat_event();
+            }
         }
     }
 
@@ -320,6 +334,7 @@ public class Drawer : MonoBehaviour
         foreach (GameObject gO in answer_paper)
         {
             gO.GetComponent<MeshRenderer>().material.mainTexture = image_list[rand_index];
+            answer = fileInfos[rand_index].Name.Substring(0, fileInfos[rand_index].Name.Length-4);
         }
     }
     //cast ray and create draw sprite
