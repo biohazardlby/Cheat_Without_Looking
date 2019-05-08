@@ -55,7 +55,7 @@ public class Drawer : MonoBehaviour
     //Initialize some containers
     PupilLabs.GazeListener gazeListener = null;
 
-    Vector3 plGiwVector_xyz;
+    Vector3 plGihVector_xyz;
     Vector3 plEIH0_xyz;
     Vector3 plEIH1_xyz;
 
@@ -105,7 +105,7 @@ public class Drawer : MonoBehaviour
 
         plConfidence = float.NaN;
         plTimeStamp = float.NaN;
-        plGiwVector_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
+        plGihVector_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
 
         plEIH0_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
         plEIH1_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
@@ -122,7 +122,7 @@ public class Drawer : MonoBehaviour
 
                 plConfidence = gazeData.Confidence;
                 plTimeStamp = gazeData.Timestamp;
-                plGiwVector_xyz = gazeData.GazePoint3d;
+                plGihVector_xyz = gazeData.GazePoint3d;
 
                 plEIH0_xyz = gazeData.GazeNormal0;
                 plEIH1_xyz = gazeData.GazeNormal1;
@@ -136,7 +136,7 @@ public class Drawer : MonoBehaviour
 
                 plConfidence = gazeData.Confidence;
                 plTimeStamp = gazeData.Timestamp;
-                plGiwVector_xyz = gazeData.GazePoint3d;
+                plGihVector_xyz = gazeData.GazePoint3d;
 
                 plEIH0_xyz = gazeData.GazeNormal0;
                 plEyeCenter0_xyz = gazeData.EyeCenter0;
@@ -150,7 +150,7 @@ public class Drawer : MonoBehaviour
 
                 plConfidence = gazeData.Confidence;
                 plTimeStamp = gazeData.Timestamp;
-                plGiwVector_xyz = gazeData.GazePoint3d;
+                plGihVector_xyz = gazeData.GazePoint3d;
 
                 plEIH0_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
                 plEyeCenter0_xyz = new Vector3(float.NaN, float.NaN, float.NaN);
@@ -188,12 +188,11 @@ public class Drawer : MonoBehaviour
             else
             {
                 penRay = new Ray(controller_trans.position, controller_trans.TransformDirection(Vector3.forward));
-                eyeRay = new Ray(vrCam.transform.position, Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz));
+                eyeRay = new Ray(vrCam.transform.position, Vector3.Normalize(vrCam.transform.rotation * plGihVector_xyz));
                 if (!eyetrack)
                 {
                     eyeRay = new Ray(vrCam.transform.position, vrCam.transform.forward);
                 }
-                Debug.Log(eyeRay.direction);
                 //Debug.DrawLine(vrCam.transform.position, vrCam.transform.position + Vector3.Normalize(vrCam.transform.rotation * plGiwVector_xyz) * 10);
                 Debug.DrawLine(eyeRay.origin, eyeRay.origin + eyeRay.direction *10, Color.red);
             }
